@@ -153,9 +153,7 @@ class Routeplane(openai.OpenAI):
         """
         return RouteplaneMeta.from_headers(headers)
 
-    def create_with_meta(
-        self, **kwargs: Any
-    ) -> Tuple[ChatCompletion, RouteplaneMeta]:
+    def create_with_meta(self, **kwargs: Any) -> Tuple[ChatCompletion, RouteplaneMeta]:
         """Chat completion that also returns the gateway :class:`RouteplaneMeta`.
 
         ::

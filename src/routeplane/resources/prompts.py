@@ -38,7 +38,5 @@ class PromptsResource(BaseResource):
     ) -> dict[str, Any]:
         """``POST /v1/prompts/{reference}/completions`` — render then route to a model."""
         body = prune_none({"variables": variables, "model": model, "provider": provider})
-        data: dict[str, Any] = self._post(
-            f"prompts/{reference}/completions", json=body
-        ).json()
+        data: dict[str, Any] = self._post(f"prompts/{reference}/completions", json=body).json()
         return data

@@ -139,9 +139,7 @@ class AsyncRouteplane(openai.AsyncOpenAI):
         """
         return RouteplaneMeta.from_headers(headers)
 
-    async def create_with_meta(
-        self, **kwargs: Any
-    ) -> Tuple[ChatCompletion, RouteplaneMeta]:
+    async def create_with_meta(self, **kwargs: Any) -> Tuple[ChatCompletion, RouteplaneMeta]:
         """Chat completion that also returns the gateway :class:`RouteplaneMeta`.
 
         ::
@@ -152,9 +150,7 @@ class AsyncRouteplane(openai.AsyncOpenAI):
         completion = cast(ChatCompletion, raw.parse())
         return completion, RouteplaneMeta.from_headers(raw.headers)
 
-    async def stream_with_meta(
-        self, **kwargs: Any
-    ) -> AsyncRouteplaneStream[ChatCompletionChunk]:
+    async def stream_with_meta(self, **kwargs: Any) -> AsyncRouteplaneStream[ChatCompletionChunk]:
         """Streaming chat completion that also exposes ``meta`` on the stream.
 
         ::

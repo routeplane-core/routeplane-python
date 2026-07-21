@@ -38,9 +38,7 @@ class _HitlResource:
 
     def status(self, *, decision_id: str) -> dict[str, Any]:
         """``GET /v1/mcp/hitl/status/{decision_id}`` — a decision's current state."""
-        data: dict[str, Any] = self._parent._get(
-            f"mcp/hitl/status/{decision_id}"
-        ).json()
+        data: dict[str, Any] = self._parent._get(f"mcp/hitl/status/{decision_id}").json()
         return data
 
     def pending(self) -> list[dict[str, Any]]:
@@ -67,9 +65,7 @@ class McpResource(BaseResource):
         args: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """``POST /v1/mcp/run/step`` — advance an agent run by one mediated tool call."""
-        body = prune_none(
-            {"agent_id": agent_id, "tool": tool, "server": server, "args": args}
-        )
+        body = prune_none({"agent_id": agent_id, "tool": tool, "server": server, "args": args})
         data: dict[str, Any] = self._post("mcp/run/step", json=body).json()
         return data
 
@@ -92,7 +88,5 @@ class McpResource(BaseResource):
 
     def inspect_result(self, *, result: dict[str, Any]) -> dict[str, Any]:
         """``POST /v1/mcp/tool-result/inspect`` — inspect a tool result on the return leg."""
-        data: dict[str, Any] = self._post(
-            "mcp/tool-result/inspect", json={"result": result}
-        ).json()
+        data: dict[str, Any] = self._post("mcp/tool-result/inspect", json={"result": result}).json()
         return data

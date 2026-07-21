@@ -20,7 +20,5 @@ class FeedbackResource(BaseResource):
         comment: Optional[str] = None,
     ) -> None:
         """``POST /v1/feedback`` — score a request (``request_id``) with an optional note."""
-        body = prune_none(
-            {"request_id": request_id, "score": score, "comment": comment}
-        )
+        body = prune_none({"request_id": request_id, "score": score, "comment": comment})
         self._post("feedback", json=body)

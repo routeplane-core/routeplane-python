@@ -53,9 +53,7 @@ def _sse():
 
 @respx.mock
 def test_create_with_meta_sync():
-    respx.post(CHAT).mock(
-        return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS)
-    )
+    respx.post(CHAT).mock(return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS))
     client = Routeplane(api_key="rp_test", base_url=BASE)
     try:
         completion, meta = client.create_with_meta(
@@ -86,9 +84,7 @@ def test_stream_with_meta_sync():
 
 @respx.mock
 async def test_create_with_meta_async():
-    respx.post(CHAT).mock(
-        return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS)
-    )
+    respx.post(CHAT).mock(return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS))
     client = AsyncRouteplane(api_key="rp_test", base_url=BASE)
     try:
         completion, meta = await client.create_with_meta(

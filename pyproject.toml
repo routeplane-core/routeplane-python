@@ -20,6 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -39,7 +41,8 @@ dev = [
 [project.urls]
 Homepage = "https://routeplane.ai"
 Documentation = "https://docs.routeplane.ai"
-Source = "https://github.com/routeplane-core/routeplane-python"
+Repository = "https://github.com/routeplane-core/routeplane-python"
+Issues = "https://github.com/routeplane-core/routeplane-python/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/routeplane"]
@@ -50,6 +53,9 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
 
 [tool.mypy]
 # Analysis floor: recent mypy no longer targets 3.9, but the package still runs

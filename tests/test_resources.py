@@ -81,9 +81,7 @@ def test_prompts_complete_prunes_none():
 
 @respx.mock
 def test_logs_list_with_limit():
-    route = respx.get(f"{BASE}/logs").mock(
-        return_value=httpx.Response(200, json=[{"id": "log_1"}])
-    )
+    route = respx.get(f"{BASE}/logs").mock(return_value=httpx.Response(200, json=[{"id": "log_1"}]))
     out = LogsResource(**_kwargs()).list(limit=5)
     assert out == [{"id": "log_1"}]
     assert _sent(route).url.params["limit"] == "5"
@@ -101,9 +99,7 @@ def test_logs_list_no_params():
 
 @respx.mock
 def test_finops_usage():
-    respx.get(f"{BASE}/finops/usage").mock(
-        return_value=httpx.Response(200, json={"total": 1})
-    )
+    respx.get(f"{BASE}/finops/usage").mock(return_value=httpx.Response(200, json={"total": 1}))
     assert FinopsResource(**_kwargs()).usage() == {"total": 1}
 
 
@@ -112,9 +108,7 @@ def test_finops_usage_daily_range():
     route = respx.get(f"{BASE}/finops/usage/daily").mock(
         return_value=httpx.Response(200, json=[{"day": "2026-07-01"}])
     )
-    out = FinopsResource(**_kwargs()).usage_daily(
-        from_date="2026-07-01", to_date="2026-07-20"
-    )
+    out = FinopsResource(**_kwargs()).usage_daily(from_date="2026-07-01", to_date="2026-07-20")
     assert out == [{"day": "2026-07-01"}]
     params = _sent(route).url.params
     assert params["from"] == "2026-07-01"
@@ -207,9 +201,7 @@ def test_mcp_run_step_prunes_none():
 
 @respx.mock
 def test_mcp_list_runs():
-    respx.get(f"{BASE}/mcp/runs").mock(
-        return_value=httpx.Response(200, json=[{"run_id": "r1"}])
-    )
+    respx.get(f"{BASE}/mcp/runs").mock(return_value=httpx.Response(200, json=[{"run_id": "r1"}]))
     assert McpResource(**_kwargs()).list_runs() == [{"run_id": "r1"}]
 
 
@@ -218,9 +210,7 @@ def test_mcp_authorize_tool_call():
     route = respx.post(f"{BASE}/mcp/tool-call/authorize").mock(
         return_value=httpx.Response(200, json={"allowed": True})
     )
-    out = McpResource(**_kwargs()).authorize_tool_call(
-        agent_id="a1", tool="fetch", server="files"
-    )
+    out = McpResource(**_kwargs()).authorize_tool_call(agent_id="a1", tool="fetch", server="files")
     assert out == {"allowed": True}
     assert _body(route) == {"agent_id": "a1", "tool": "fetch", "server": "files"}
 
@@ -288,9 +278,7 @@ def test_models_list_with_provider():
 
 @respx.mock
 def test_models_get():
-    respx.get(f"{BASE}/models/gpt-4o").mock(
-        return_value=httpx.Response(200, json={"id": "gpt-4o"})
-    )
+    respx.get(f"{BASE}/models/gpt-4o").mock(return_value=httpx.Response(200, json={"id": "gpt-4o"}))
     assert ModelsResource(**_kwargs()).get("gpt-4o") == {"id": "gpt-4o"}
 
 
@@ -321,9 +309,7 @@ def test_analytics_latency_hits_origin_root():
 
 @respx.mock
 def test_providers_list():
-    respx.get(f"{BASE}/providers").mock(
-        return_value=httpx.Response(200, json=[{"name": "acme"}])
-    )
+    respx.get(f"{BASE}/providers").mock(return_value=httpx.Response(200, json=[{"name": "acme"}]))
     assert ProvidersResource(**_kwargs()).list() == [{"name": "acme"}]
 
 
@@ -332,9 +318,7 @@ def test_providers_create_prunes_none():
     route = respx.post(f"{BASE}/providers").mock(
         return_value=httpx.Response(200, json={"name": "acme"})
     )
-    out = ProvidersResource(**_kwargs()).create(
-        name="acme", base_url="https://acme.example/v1"
-    )
+    out = ProvidersResource(**_kwargs()).create(name="acme", base_url="https://acme.example/v1")
     assert out == {"name": "acme"}
     body = _body(route)
     assert body == {"name": "acme", "base_url": "https://acme.example/v1"}
@@ -343,9 +327,7 @@ def test_providers_create_prunes_none():
 
 @respx.mock
 def test_providers_delete_returns_none():
-    route = respx.delete(f"{BASE}/providers/acme").mock(
-        return_value=httpx.Response(204)
-    )
+    route = respx.delete(f"{BASE}/providers/acme").mock(return_value=httpx.Response(204))
     assert ProvidersResource(**_kwargs()).delete("acme") is None
     assert route.called
 
