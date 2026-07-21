@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "routeplane"
+version = "0.1.0"
+description = "Official Python SDK for the Routeplane AI Gateway"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [{ name = "Routeplane", email = "rp_maintainers@routeplane.ai" }]
+keywords = ["routeplane", "ai-gateway", "llm", "openai", "proxy", "agentic-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "openai>=1.0.0",
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://routeplane.ai"
+Documentation = "https://docs.routeplane.ai"
+Source = "https://github.com/routeplane-core/routeplane-python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/routeplane"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.mypy]
+# Analysis floor: recent mypy no longer targets 3.9, but the package still runs
+# on 3.9 at runtime (every module uses `from __future__ import annotations`).
+python_version = "3.10"
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
