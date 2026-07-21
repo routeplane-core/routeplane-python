@@ -213,6 +213,23 @@ parses the gateway's `x-routeplane-*` response headers: `provider`, `trace_id`,
 `request_id`, `cache`, `guardrails`, `hedged`, `shed`, `budget_remaining`,
 `budget_warning`, `compliance_warning`, `pii_masked`, `idempotent_replayed`.
 
+## Examples
+
+Runnable scripts live in [`examples/`](examples):
+
+| File | Shows |
+| --- | --- |
+| [`basic.py`](examples/basic.py) | Minimal `Routeplane` client — a drop-in OpenAI subclass |
+| [`headers_only.py`](examples/headers_only.py) | Stock `openai` SDK + `headers()` for per-request steering |
+| [`streaming_with_meta.py`](examples/streaming_with_meta.py) | Streaming with the gateway's decision metadata |
+| [`metadata.py`](examples/metadata.py) | `create_with_meta` — completion plus typed `RouteplaneMeta` |
+| [`resources.py`](examples/resources.py) | Non-OpenAI surfaces — status, logs, FinOps, prompts, cache |
+| [`langchain_integration.py`](examples/langchain_integration.py) | LangChain (`ChatOpenAI`) |
+| [`llamaindex_integration.py`](examples/llamaindex_integration.py) | LlamaIndex (`llama-index-llms-openai`) |
+| [`crewai_integration.py`](examples/crewai_integration.py) | CrewAI (`LLM`) |
+
+See [`examples/`](examples) for more.
+
 ## Development
 
 ```bash
