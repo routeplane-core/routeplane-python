@@ -1,17 +1,40 @@
 """The :class:`AsyncRouteplane` client — a thin subclass of ``openai.AsyncOpenAI``.
 
-Async twin of :class:`routeplane.Routeplane`; same header-injection behavior.
+Async twin of :class:`routeplane.Routeplane`; same header injection, the same
+resource namespaces, and async-native ``create_with_meta`` / ``stream_with_meta``.
+
+The REST resource namespaces (``prompts``, ``finops``, …) are the same synchronous
+``httpx``-backed objects the sync client exposes — they cover low-frequency
+admin/analytics endpoints, so they block briefly rather than dragging a second
+async HTTP stack into the SDK. The chat/embeddings hot path stays fully async via
+the inherited ``openai`` client.
 """
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple, cast
 
+import httpx
 import openai
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
+from ._streaming import AsyncRouteplaneStream
 from .client import DEFAULT_BASE_URL
 from .headers import headers as build_headers
 from .meta import RouteplaneMeta
+from .resources import (
+    AnalyticsResource,
+    CacheResource,
+    FeedbackResource,
+    FinopsResource,
+    LogsResource,
+    McpResource,
+    ModelsResource,
+    PromptsResource,
+    ProvidersResource,
+    ResidencyResource,
+    StatusResource,
+)
 
 __all__ = ["AsyncRouteplane"]
 
@@ -24,6 +47,19 @@ class AsyncRouteplane(openai.AsyncOpenAI):
     """
 
     _rp_defaults: dict[str, Any]
+    _rp_http: httpx.Client
+
+    prompts: PromptsResource
+    logs: LogsResource
+    finops: FinopsResource
+    cache: CacheResource
+    feedback: FeedbackResource
+    residency: ResidencyResource
+    mcp_security: McpResource
+    rp_models: ModelsResource
+    rp_providers: ProvidersResource
+    analytics: AnalyticsResource
+    status: StatusResource
 
     def __init__(
         self,
@@ -67,6 +103,30 @@ class AsyncRouteplane(openai.AsyncOpenAI):
             **kwargs,
         )
 
+        self._rp_http = httpx.Client()
+        self._install_resources(api_key=api_key, base_url=base_url, routing=default_hdrs)
+
+    def _install_resources(
+        self, *, api_key: str, base_url: str, routing: Mapping[str, str]
+    ) -> None:
+        common: dict[str, Any] = {
+            "api_key": api_key,
+            "base_url": base_url,
+            "http_client": self._rp_http,
+            "default_headers": routing,
+        }
+        self.prompts = PromptsResource(**common)
+        self.logs = LogsResource(**common)
+        self.finops = FinopsResource(**common)
+        self.cache = CacheResource(**common)
+        self.feedback = FeedbackResource(**common)
+        self.residency = ResidencyResource(**common)
+        self.mcp_security = McpResource(**common)
+        self.rp_models = ModelsResource(**common)
+        self.rp_providers = ProvidersResource(**common)
+        self.analytics = AnalyticsResource(**common)
+        self.status = StatusResource(**common)
+
     @staticmethod
     def meta_from_headers(headers: Mapping[str, str]) -> RouteplaneMeta:
         """Parse ``x-routeplane-*`` response headers into a :class:`RouteplaneMeta`.
@@ -78,3 +138,40 @@ class AsyncRouteplane(openai.AsyncOpenAI):
             completion = raw.parse()
         """
         return RouteplaneMeta.from_headers(headers)
+
+    async def create_with_meta(
+        self, **kwargs: Any
+    ) -> Tuple[ChatCompletion, RouteplaneMeta]:
+        """Chat completion that also returns the gateway :class:`RouteplaneMeta`.
+
+        ::
+
+            completion, meta = await client.create_with_meta(model="gpt-4o", messages=[...])
+        """
+        raw = await self.chat.completions.with_raw_response.create(**kwargs)
+        completion = cast(ChatCompletion, raw.parse())
+        return completion, RouteplaneMeta.from_headers(raw.headers)
+
+    async def stream_with_meta(
+        self, **kwargs: Any
+    ) -> AsyncRouteplaneStream[ChatCompletionChunk]:
+        """Streaming chat completion that also exposes ``meta`` on the stream.
+
+        ::
+
+            stream = await client.stream_with_meta(model="gpt-4o", messages=[...])
+            print(stream.meta.provider)
+            async for chunk in stream:
+                ...
+        """
+        kwargs["stream"] = True
+        raw = await self.chat.completions.with_raw_response.create(**kwargs)
+        stream: Any = raw.parse()
+        return AsyncRouteplaneStream(stream, raw.headers)
+
+    async def close(self) -> None:
+        """Close the OpenAI transport *and* the shared Routeplane httpx client."""
+        try:
+            self._rp_http.close()
+        finally:
+            await super().close()

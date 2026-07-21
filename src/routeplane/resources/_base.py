@@ -14,7 +14,17 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-__all__ = ["BaseResource"]
+__all__ = ["BaseResource", "prune_none"]
+
+
+def prune_none(body: Mapping[str, Any]) -> dict[str, Any]:
+    """Drop keys whose value is ``None`` so optional args never hit the wire.
+
+    A request-body builder should send ``{}`` — not ``{"comment": null}`` — when
+    an optional argument is omitted, so the gateway sees only what the caller
+    actually set.
+    """
+    return {key: value for key, value in body.items() if value is not None}
 
 
 def _origin_of(base_url: str) -> str:
@@ -87,5 +97,16 @@ class BaseResource:
     ) -> httpx.Response:
         merged = {**self._auth_headers, **dict(headers or {})}
         response = self._client.post(self._url(path), json=json, headers=merged)
+        response.raise_for_status()
+        return response
+
+    def _delete(
+        self,
+        path: str,
+        *,
+        headers: Optional[Mapping[str, str]] = None,
+    ) -> httpx.Response:
+        merged = {**self._auth_headers, **dict(headers or {})}
+        response = self._client.delete(self._url(path), headers=merged)
         response.raise_for_status()
         return response

@@ -1,20 +1,44 @@
-"""Prompt-management namespace (``/v1/prompts/*``). Phase 5 stub."""
+"""Prompt-management namespace (``/v1/prompts/*``)."""
 
 from __future__ import annotations
 
-from ._base import BaseResource
+from typing import Any, Optional
+
+from ._base import BaseResource, prune_none
 
 __all__ = ["PromptsResource"]
 
 
 class PromptsResource(BaseResource):
-    """Access to ``GET /v1/prompts/{ref}``, render, and completions.
+    """Fetch, render, and complete managed prompt templates (PRD-010)."""
 
-    Not yet implemented — lands in Phase 5.
-    """
+    def get(self, reference: str) -> dict[str, Any]:
+        """``GET /v1/prompts/{reference}`` — the raw template + metadata."""
+        data: dict[str, Any] = self._get(f"prompts/{reference}").json()
+        return data
 
-    def retrieve(self, reference: str) -> object:
-        raise NotImplementedError("PromptsResource lands in Phase 5")
+    def render(
+        self,
+        reference: str,
+        *,
+        variables: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        """``POST /v1/prompts/{reference}/render`` — interpolate ``variables``."""
+        body = prune_none({"variables": variables})
+        data: dict[str, Any] = self._post(f"prompts/{reference}/render", json=body).json()
+        return data
 
-    def render(self, reference: str, variables: dict[str, object] | None = None) -> object:
-        raise NotImplementedError("PromptsResource lands in Phase 5")
+    def complete(
+        self,
+        reference: str,
+        *,
+        variables: Optional[dict[str, str]] = None,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """``POST /v1/prompts/{reference}/completions`` — render then route to a model."""
+        body = prune_none({"variables": variables, "model": model, "provider": provider})
+        data: dict[str, Any] = self._post(
+            f"prompts/{reference}/completions", json=body
+        ).json()
+        return data

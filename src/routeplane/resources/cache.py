@@ -1,4 +1,4 @@
-"""Cache-control namespace (``POST /v1/cache/purge``). Phase 5 stub."""
+"""Cache-control namespace (``POST /v1/cache/purge``)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ __all__ = ["CacheResource"]
 
 
 class CacheResource(BaseResource):
-    """Access to ``POST /v1/cache/purge``. Not yet implemented — lands in Phase 5."""
+    """Manage the exact-match response cache."""
 
-    def purge(self, **body: object) -> object:
-        raise NotImplementedError("CacheResource lands in Phase 5")
+    def purge(self) -> None:
+        """``POST /v1/cache/purge`` — evict all cached responses for this key."""
+        self._post("cache/purge")

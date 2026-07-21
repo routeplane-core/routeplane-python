@@ -1,8 +1,9 @@
 """Typed models for Routeplane's non-OpenAI endpoints.
 
-Phase 1 ships only :class:`Status` (the model behind ``GET /status``). The
-remaining resource models (prompts, logs, finops, cache, feedback, mcp,
-residency) land in Phase 5 — see ``resources/`` for the matching stubs.
+:class:`Status` (the model behind ``GET /status``) is the one endpoint that
+parses into a dataclass. The other resource namespaces return permissive
+``dict`` / ``list[dict]`` payloads straight from the gateway, so a gateway that
+grows a field never breaks an older SDK.
 """
 
 from __future__ import annotations

@@ -1,6 +1,8 @@
-"""Sovereign-routing / residency namespace (``/v1/residency/*``). Phase 5 stub."""
+"""Sovereign-routing / residency namespace (``/v1/residency/*``)."""
 
 from __future__ import annotations
+
+from typing import Any
 
 from ._base import BaseResource
 
@@ -8,10 +10,14 @@ __all__ = ["ResidencyResource"]
 
 
 class ResidencyResource(BaseResource):
-    """Access to the ``/v1/residency/*`` surface.
+    """Read this key's own sovereign-routing decisions."""
 
-    Not yet implemented — lands in Phase 5.
-    """
+    def summary(self) -> dict[str, Any]:
+        """``GET /v1/residency/summary`` — counts of region-locked routing decisions."""
+        data: dict[str, Any] = self._get("residency/summary").json()
+        return data
 
-    def classify(self, **body: object) -> object:
-        raise NotImplementedError("ResidencyResource lands in Phase 5")
+    def ledger(self) -> dict[str, Any]:
+        """``GET /v1/residency/ledger`` — the sovereign-decision ledger view."""
+        data: dict[str, Any] = self._get("residency/ledger").json()
+        return data
