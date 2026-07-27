@@ -82,10 +82,12 @@ class BaseResource:
         *,
         params: Optional[Mapping[str, Any]] = None,
         headers: Optional[Mapping[str, str]] = None,
+        expect: tuple[int, ...] = (),
     ) -> httpx.Response:
         merged = {**self._auth_headers, **dict(headers or {})}
         response = self._client.get(self._url(path), params=params, headers=merged)
-        response.raise_for_status()
+        if response.status_code not in expect:
+            response.raise_for_status()
         return response
 
     def _post(
@@ -94,10 +96,20 @@ class BaseResource:
         *,
         json: Any = None,
         headers: Optional[Mapping[str, str]] = None,
+        expect: tuple[int, ...] = (),
     ) -> httpx.Response:
+        """POST and raise on error.
+
+        ``expect`` lists additional status codes to return instead of raising —
+        for endpoints where a non-2xx is a normal answer rather than a failure.
+        The MCP policy gates are the case that needs it: a default-deny verdict
+        arrives as a structured ``422`` body, so raising would turn the single
+        most common agentic-security outcome into an exception.
+        """
         merged = {**self._auth_headers, **dict(headers or {})}
         response = self._client.post(self._url(path), json=json, headers=merged)
-        response.raise_for_status()
+        if response.status_code not in expect:
+            response.raise_for_status()
         return response
 
     def _delete(

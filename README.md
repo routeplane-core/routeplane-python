@@ -213,6 +213,97 @@ parses the gateway's `x-routeplane-*` response headers: `provider`, `trace_id`,
 `request_id`, `cache`, `guardrails`, `hedged`, `shed`, `budget_remaining`,
 `budget_warning`, `compliance_warning`, `pii_masked`, `idempotent_replayed`.
 
+## Prompt management
+
+Managed prompt templates are fetched, rendered, and run through the ordinary
+chat pipeline — so residency routing, guardrails, caching, and budgets all still
+apply to a prompt completion.
+
+```python
+# The stored version, no render, no upstream call.
+version = client.prompts.get("welcome-v2")
+
+# Render only. `missing="empty"` substitutes nothing for an unsupplied variable
+# instead of failing; `cohort` is the sticky key for an A/B-tested prompt.
+rendered = client.prompts.render(
+    "welcome-v2", variables={"name": "Rohit"}, missing="empty", cohort="user-7"
+)
+
+# Render and run it. Any extra keyword becomes a chat-request override and beats
+# the version's stored defaults.
+completion = client.prompts.complete(
+    "welcome-v2",
+    variables={"name": "Rohit"},
+    model="gpt-4o-mini",
+    temperature=0.2,
+)
+```
+
+| Method | Endpoint |
+| --- | --- |
+| `prompts.get(ref)` | `GET /v1/prompts/{ref}` |
+| `prompts.render(ref, …)` | `POST /v1/prompts/{ref}/render` |
+| `prompts.complete(ref, …)` | `POST /v1/prompts/{ref}/completions` |
+
+Requires the `PromptRegistry` entitlement — otherwise 403 `feature_not_entitled`,
+or `feature_not_released` if it is entitled but still behind a rollout holdback.
+
+## Agentic security (MCP gateway)
+
+The MCP gateway is a **default-deny policy boundary** for agent tool calls. A
+grant for one server never authorizes the same tool name on another, tool
+arguments are checked against an SSRF egress guard, and tool results are
+inspected on the return leg before they re-enter the model's context.
+
+A deny is the system working, so policy verdicts come back as values rather than
+exceptions — `authorize_tool_call`, `inspect_result`, `sampling_evaluate`, and
+`run_step` return a typed `Decision` or `RunStep` for both outcomes. Everything
+else raises on a non-2xx as usual.
+
+```python
+mcp = client.mcp_security
+
+# Account one iteration against the run's ceiling / budget / kill switch.
+step = mcp.run_step(run_id="run-001", agent_id="support-agent", cost_micro_usd=1200)
+if not step.should_continue:
+    raise SystemExit(f"halted after {step.iterations}: {step.reason}")
+
+# Authorize the specific (server, tool) call before the agent makes it.
+decision = mcp.authorize_tool_call(
+    agent_id="support-agent",
+    server="filesystem",
+    tool="fetch_document",
+    arguments={"url": "https://docs.example.test/policy.pdf"},
+)
+if not decision.allowed:
+    print(decision.reason, decision.status_code)   # 429 also has retry_after_ms
+
+# Screen what came back before it reaches the model.
+verdict = mcp.inspect_result(content=tool_result)
+```
+
+| Method | Endpoint |
+| --- | --- |
+| `mcp_security.authorize_tool_call(…)` | `POST /v1/mcp/tool-call/authorize` |
+| `mcp_security.inspect_result(…)` | `POST /v1/mcp/tool-result/inspect` |
+| `mcp_security.run_step(…)` | `POST /v1/mcp/run/step` |
+| `mcp_security.sampling_evaluate(…)` | `POST /v1/mcp/sampling/evaluate` |
+| `mcp_security.list_runs()` | `GET /v1/mcp/runs` |
+| `mcp_security.security_events()` | `GET /v1/mcp/security/events` |
+| `mcp_security.hitl.approve(…)` / `.deny(…)` | `POST /v1/mcp/hitl/{approve,deny}` |
+| `mcp_security.hitl.status(…)` / `.pending()` | `GET /v1/mcp/hitl/status/{id}`, `/pending` |
+| `mcp_security.receipts.issue(…)` / `.verify(…)` | `POST /v1/mcp/receipt/{issue,verify}` |
+| `mcp_security.anomaly.status(…)` / `.clear(…)` | `GET /v1/mcp/anomaly/status/{id}`, `POST /clear` |
+
+Requires the `AgenticSecurity` entitlement. A tenant without it is not told the
+surface exists: these routes answer **404**, not 403. So an
+`httpx.HTTPStatusError` for 404 here usually means *not entitled* rather than
+*wrong path*.
+
+`agent_id` is optional wherever a gateway key is bound to an agent identity —
+the binding supplies it, and a value that *disagrees* with the binding is denied
+rather than trusted.
+
 ## Examples
 
 Runnable scripts live in [`examples/`](examples):
@@ -224,6 +315,7 @@ Runnable scripts live in [`examples/`](examples):
 | [`streaming_with_meta.py`](examples/streaming_with_meta.py) | Streaming with the gateway's decision metadata |
 | [`metadata.py`](examples/metadata.py) | `create_with_meta` — completion plus typed `RouteplaneMeta` |
 | [`resources.py`](examples/resources.py) | Non-OpenAI surfaces — status, logs, FinOps, prompts, cache |
+| [`agentic_security.py`](examples/agentic_security.py) | Mediating an agent tool loop through the MCP gateway |
 | [`langchain_integration.py`](examples/langchain_integration.py) | LangChain (`ChatOpenAI`) |
 | [`llamaindex_integration.py`](examples/llamaindex_integration.py) | LlamaIndex (`llama-index-llms-openai`) |
 | [`crewai_integration.py`](examples/crewai_integration.py) | CrewAI (`LLM`) |
