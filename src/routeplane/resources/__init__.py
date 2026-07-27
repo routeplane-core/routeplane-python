@@ -11,7 +11,7 @@ from .cache import CacheResource
 from .feedback import FeedbackResource
 from .finops import FinopsResource
 from .logs import LogsResource
-from .mcp import McpResource
+from .mcp import Decision, McpResource, RunStep
 from .models import ModelsResource
 from .prompts import PromptsResource
 from .providers import ProvidersResource
@@ -22,10 +22,12 @@ __all__ = [
     "BaseResource",
     "AnalyticsResource",
     "CacheResource",
+    "Decision",
     "FeedbackResource",
     "FinopsResource",
     "LogsResource",
     "McpResource",
+    "RunStep",
     "ModelsResource",
     "PromptsResource",
     "ProvidersResource",

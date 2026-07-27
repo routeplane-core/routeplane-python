@@ -15,6 +15,7 @@ from .async_client import AsyncRouteplane
 from .client import Routeplane
 from .headers import headers
 from .meta import RouteplaneMeta
+from .resources import Decision, RunStep
 
 __all__ = [
     "Routeplane",
@@ -23,5 +24,7 @@ __all__ = [
     "AsyncRouteplaneStream",
     "headers",
     "RouteplaneMeta",
+    "Decision",
+    "RunStep",
     "__version__",
 ]
