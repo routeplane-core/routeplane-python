@@ -43,7 +43,8 @@ def headers(
     *,
     provider: str | None = None,
     residency: str | None = None,
-    strategy: Literal["priority", "weighted", "cost", "latency"] | None = None,
+    strategy: Literal["priority", "weighted", "cost", "latency", "round_robin", "least_busy"]
+    | None = None,
     config: dict[str, Any] | None = None,
     timeout_ms: int | None = None,
     use_case: str | None = None,
@@ -74,7 +75,10 @@ def headers(
             request carries personal data and a residency region.
         residency: Requested data-residency region (e.g. ``"IN"``). Only enforced
             when the request also carries personal data.
-        strategy: Provider-ordering strategy.
+        strategy: Provider-ordering strategy; defaults to ``"priority"``. The
+            gateway matches case-insensitively and falls back to ``"priority"``
+            for an unknown or empty value rather than erroring, so a typo
+            silently routes by priority. Superseded by a routing config.
         config: Inline routing/policy config, JSON-serialized onto the wire.
         timeout_ms: Per-request upstream timeout in milliseconds.
         use_case: Free-form use-case label for analytics/FinOps attribution.

@@ -1,4 +1,5 @@
 import json
+import re
 
 from routeplane import headers
 from routeplane.headers import HEADER_NAMES
@@ -77,3 +78,26 @@ def test_literal_values_pass_through():
     assert headers(log_level="none")["x-routeplane-log-level"] == "none"
     assert headers(pii_mode="tokenize")["x-routeplane-pii-mode"] == "tokenize"
     assert headers(cache_control="no-store")["x-routeplane-cache-control"] == "no-store"
+
+
+def test_strategy_hint_covers_every_gateway_strategy():
+    # Asserted against the annotation, not a call: a Literal is not enforced at
+    # runtime, so passing "round_robin" would "work" even with the hint wrong.
+    # Type-checked callers are the ones a stale hint breaks, so pin the hint.
+    #
+    # Read as raw source (the module uses `from __future__ import annotations`)
+    # rather than via get_type_hints: resolving it would evaluate `... | None`,
+    # which is a TypeError on the 3.9 leg of the support matrix.
+    # PEP 563 stores the unparsed AST, so quoting is normalized, not verbatim
+    # source — match either style.
+    annotation = headers.__annotations__["strategy"]
+    literal = re.search(r"Literal\[(.*?)\]", annotation, re.S)
+    assert literal, f"strategy hint is no longer a Literal: {annotation}"
+    assert set(re.findall(r"['\"]([^'\"]+)['\"]", literal.group(1))) == {
+        "priority",
+        "weighted",
+        "cost",
+        "latency",
+        "round_robin",
+        "least_busy",
+    }
