@@ -190,7 +190,7 @@ All are `x-routeplane-*` and all are optional except the API key. Build them wit
 | --- | --- | --- |
 | `provider` | `x-routeplane-provider` | Provider or comma-separated fallback chain |
 | `residency` | `x-routeplane-residency` | Data-residency region (e.g. `IN`) |
-| `strategy` | `x-routeplane-strategy` | `priority` \| `weighted` \| `cost` \| `latency` |
+| `strategy` | `x-routeplane-strategy` | `priority` \| `weighted` \| `cost` \| `latency` \| `round_robin` \| `least_busy` |
 | `config` | `x-routeplane-config` | Inline routing config (JSON) |
 | `timeout_ms` | `x-routeplane-timeout-ms` | Upstream timeout, ms |
 | `use_case` | `x-routeplane-use-case` | Analytics/FinOps label |
