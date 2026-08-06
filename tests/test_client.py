@@ -47,8 +47,8 @@ def test_client_default_base_url_and_no_extra_headers():
 def test_client_base_url_override():
     captured, patcher = _capture_openai_init(openai.OpenAI)
     with patcher:
-        Routeplane(api_key="rp_test", base_url="https://garth.routeplane.ai/v1")
-    assert captured["base_url"] == "https://garth.routeplane.ai/v1"
+        Routeplane(api_key="rp_test", base_url="https://gateway.example.com/v1")
+    assert captured["base_url"] == "https://gateway.example.com/v1"
 
 
 def test_client_merges_caller_default_headers():
