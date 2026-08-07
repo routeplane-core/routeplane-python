@@ -8,16 +8,25 @@ permissions:
   contents: read
 
 jobs:
+  # The release path runs the SAME assertions as CI, by calling CI — not by
+  # restating them. Until this job existed, `ruff`, `mypy` and the 3.9-3.13
+  # pytest matrix all ran on push/PR to main and none of them ran on the tag
+  # that actually publishes to PyPI: a `v*` tag could be cut from any commit and
+  # shipped to users without a single test executing.
+  test:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - run: pip install build
       - run: python -m build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist
           path: dist/
@@ -29,12 +38,12 @@ jobs:
     permissions:
       id-token: write  # trusted publishing (OIDC) — no token secret needed
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dist
           path: dist/
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         # Trusted publishing: configure the PyPI project to trust
         # routeplane-core/routeplane-python via the "publish" workflow +
         # "pypi" environment. No PYPI_TOKEN secret required.

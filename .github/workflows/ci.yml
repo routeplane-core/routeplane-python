@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Callable so the RELEASE path runs these exact assertions rather than a copy
+  # of them. publish.yml gates on this workflow; a second definition would be
+  # one more thing to keep in sync, and the drift would be invisible until a
+  # bad release was already on PyPI.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
