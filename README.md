@@ -213,6 +213,33 @@ parses the gateway's `x-routeplane-*` response headers: `provider`, `trace_id`,
 `request_id`, `cache`, `guardrails`, `hedged`, `shed`, `budget_remaining`,
 `budget_warning`, `compliance_warning`, `pii_masked`, `idempotent_replayed`.
 
+## Legacy feedback
+
+Use the gateway-generated request ID from response metadata, not the provider's
+completion body ID:
+
+```python
+completion, meta = client.create_with_meta(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+if meta.request_id is not None:
+    client.feedback.create(request_id=meta.request_id, score=1)
+```
+
+The helper keeps its `request_id` and `score` arguments and sends
+`{"trace_id": "req_...", "value": 1}` to `POST /v1/feedback`. Scores must be
+integers from −10 through 10. Integral floats such as `1.0` become JSON integers
+without rescaling. Fractional, out-of-range and nonfinite values raise
+`ValueError`; booleans and non-numeric types raise `TypeError`, before dispatch.
+
+Comments are unsupported: omitted, `None` or empty-string comments are omitted
+from the wire. Every nonempty comment, including whitespace-only text, raises
+`ValueError`; other comment types raise `TypeError`. Successful calls return
+`None`, acknowledging acceptance rather than durable storage or target existence.
+The feedback helper is synchronous on both `Routeplane` and `AsyncRouteplane`;
+do not `await` it.
+
 ## Prompt management
 
 Managed prompt templates are fetched, rendered, and run through the ordinary

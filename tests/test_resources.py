@@ -199,15 +199,16 @@ def test_feedback_create_prunes_comment():
     route = respx.post(f"{BASE}/feedback").mock(return_value=httpx.Response(204))
     assert FeedbackResource(**_kwargs()).create(request_id="req_1", score=1.0) is None
     body = _body(route)
-    assert body == {"request_id": "req_1", "score": 1.0}
+    assert body == {"trace_id": "req_1", "value": 1}
+    assert type(body["value"]) is int
     assert "comment" not in body
 
 
 @respx.mock
 def test_feedback_create_with_comment():
-    route = respx.post(f"{BASE}/feedback").mock(return_value=httpx.Response(204))
-    FeedbackResource(**_kwargs()).create(request_id="req_1", score=0.0, comment="meh")
-    assert _body(route) == {"request_id": "req_1", "score": 0.0, "comment": "meh"}
+    with pytest.raises(ValueError, match="comment.*not supported"):
+        FeedbackResource(**_kwargs()).create(request_id="req_1", score=0.0, comment="meh")
+    assert len(respx.calls) == 0
 
 
 # --- residency -------------------------------------------------------------
