@@ -1,4 +1,9 @@
-"""Tests for ``create_with_meta`` / ``stream_with_meta`` on both clients."""
+"""Tests for ``create_with_meta`` / ``stream_with_meta`` on both clients.
+
+Inject httpx clients so respx intercepts every request. Newer OpenAI versions
+default to httpx2, which these httpx fixtures do not mock. This deliberately
+tests the supported explicit-client path without changing production defaults.
+"""
 
 import json
 
@@ -54,7 +59,7 @@ def _sse():
 @respx.mock
 def test_create_with_meta_sync():
     respx.post(CHAT).mock(return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS))
-    client = Routeplane(api_key="rp_test", base_url=BASE)
+    client = Routeplane(api_key="rp_test", base_url=BASE, http_client=httpx.Client())
     try:
         completion, meta = client.create_with_meta(
             model="gpt-4o", messages=[{"role": "user", "content": "hi"}]
@@ -69,7 +74,7 @@ def test_create_with_meta_sync():
 @respx.mock
 def test_stream_with_meta_sync():
     respx.post(CHAT).mock(return_value=_sse())
-    client = Routeplane(api_key="rp_test", base_url=BASE)
+    client = Routeplane(api_key="rp_test", base_url=BASE, http_client=httpx.Client())
     try:
         stream = client.stream_with_meta(
             model="gpt-4o", messages=[{"role": "user", "content": "hi"}]
@@ -85,7 +90,7 @@ def test_stream_with_meta_sync():
 @respx.mock
 async def test_create_with_meta_async():
     respx.post(CHAT).mock(return_value=httpx.Response(200, json=_COMPLETION, headers=_META_HEADERS))
-    client = AsyncRouteplane(api_key="rp_test", base_url=BASE)
+    client = AsyncRouteplane(api_key="rp_test", base_url=BASE, http_client=httpx.AsyncClient())
     try:
         completion, meta = await client.create_with_meta(
             model="gpt-4o", messages=[{"role": "user", "content": "hi"}]
@@ -99,7 +104,7 @@ async def test_create_with_meta_async():
 @respx.mock
 async def test_stream_with_meta_async():
     respx.post(CHAT).mock(return_value=_sse())
-    client = AsyncRouteplane(api_key="rp_test", base_url=BASE)
+    client = AsyncRouteplane(api_key="rp_test", base_url=BASE, http_client=httpx.AsyncClient())
     try:
         stream = await client.stream_with_meta(
             model="gpt-4o", messages=[{"role": "user", "content": "hi"}]
