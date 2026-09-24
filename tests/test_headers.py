@@ -1,6 +1,8 @@
 import json
 import re
 
+import pytest
+
 from routeplane import headers
 from routeplane.headers import HEADER_NAMES
 
@@ -43,11 +45,12 @@ def test_int_headers_are_stringified():
     assert isinstance(result["x-routeplane-timeout-ms"], str)
 
 
-def test_all_seventeen_headers_present():
+def test_all_eighteen_headers_present():
     result = headers(
         provider="openai",
         residency="IN",
         strategy="latency",
+        canary_share_bps=500,
         config={"a": 1},
         timeout_ms=1000,
         use_case="chatbot",
@@ -65,7 +68,7 @@ def test_all_seventeen_headers_present():
     )
     # Every declared header name is produced exactly once.
     assert set(result.keys()) == set(HEADER_NAMES.values())
-    assert len(result) == 17
+    assert len(result) == 18
 
 
 def test_header_name_mapping_is_kebab_prefixed():
@@ -100,4 +103,20 @@ def test_strategy_hint_covers_every_gateway_strategy():
         "latency",
         "round_robin",
         "least_busy",
+        "canary",
     }
+
+
+def test_canary_and_prompt_cohort_headers_are_distinct():
+    result = headers(strategy="canary", canary_share_bps=500, cohort="prompt-arm-b")
+    assert result == {
+        "x-routeplane-strategy": "canary",
+        "x-routeplane-canary-share-bps": "500",
+        "x-routeplane-cohort": "prompt-arm-b",
+    }
+
+
+def test_canary_share_is_bounded_basis_points():
+    for invalid in (-1, 10001):
+        with pytest.raises(ValueError, match="between 0 and 10000"):
+            headers(canary_share_bps=invalid)

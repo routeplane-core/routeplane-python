@@ -22,6 +22,7 @@ HEADER_NAMES: dict[str, str] = {
     "provider": "x-routeplane-provider",
     "residency": "x-routeplane-residency",
     "strategy": "x-routeplane-strategy",
+    "canary_share_bps": "x-routeplane-canary-share-bps",
     "config": "x-routeplane-config",
     "timeout_ms": "x-routeplane-timeout-ms",
     "use_case": "x-routeplane-use-case",
@@ -43,8 +44,11 @@ def headers(
     *,
     provider: str | None = None,
     residency: str | None = None,
-    strategy: Literal["priority", "weighted", "cost", "latency", "round_robin", "least_busy"]
+    strategy: Literal[
+        "priority", "weighted", "cost", "latency", "round_robin", "least_busy", "canary"
+    ]
     | None = None,
+    canary_share_bps: int | None = None,
     config: dict[str, Any] | None = None,
     timeout_ms: int | None = None,
     use_case: str | None = None,
@@ -79,6 +83,10 @@ def headers(
             gateway matches case-insensitively and falls back to ``"priority"``
             for an unknown or empty value rather than erroring, so a typo
             silently routes by priority. Superseded by a routing config.
+        canary_share_bps: Candidate share for ``strategy="canary"`` in basis
+            points (0..10000). Assignment is deterministic per virtual key and
+            promotes the second provider in the chain; it is not a per-request
+            random split.
         config: Inline routing/policy config, JSON-serialized onto the wire.
         timeout_ms: Per-request upstream timeout in milliseconds.
         use_case: Free-form use-case label for analytics/FinOps attribution.
@@ -90,7 +98,8 @@ def headers(
         output_mask: Output masking policy reference.
         cache_control: Response-cache directive.
         idempotency_key: Client-supplied idempotency key for safe retries.
-        cohort: Experiment/cohort label.
+        cohort: Prompt-variant cohort label. This is separate from provider
+            canary assignment and overrides the prompt registry's derived cohort.
         batch: Batch identifier.
         trace_id: Client-supplied distributed-trace id (echoed back on the response).
 
@@ -98,10 +107,17 @@ def headers(
         A ``dict[str, str]`` of header name to value, suitable to splat into any
         client's extra/default headers.
     """
+    if canary_share_bps is not None:
+        if isinstance(canary_share_bps, bool) or not isinstance(canary_share_bps, int):
+            raise TypeError("canary_share_bps must be an integer")
+        if not 0 <= canary_share_bps <= 10000:
+            raise ValueError("canary_share_bps must be between 0 and 10000")
+
     values: dict[str, Any] = {
         "provider": provider,
         "residency": residency,
         "strategy": strategy,
+        "canary_share_bps": canary_share_bps,
         "config": config,
         "timeout_ms": timeout_ms,
         "use_case": use_case,

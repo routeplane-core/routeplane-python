@@ -1,4 +1,4 @@
-from routeplane import RouteplaneMeta
+from routeplane import RouteplaneMeta, RouteplaneRateLimits
 
 
 def test_empty_headers_yield_defaults():
@@ -9,6 +9,24 @@ def test_empty_headers_yield_defaults():
     assert meta.shed is False
     assert meta.pii_masked is False
     assert meta.idempotent_replayed is False
+    assert meta.rate_limits is None
+
+
+def test_standard_rate_limit_headers_are_typed():
+    meta = RouteplaneMeta.from_headers(
+        {
+            "x-ratelimit-limit-requests": "100",
+            "x-ratelimit-remaining-requests": "97",
+            "x-ratelimit-reset-requests": "42",
+            "x-ratelimit-limit-tokens": "100000",
+        }
+    )
+    assert meta.rate_limits == RouteplaneRateLimits(
+        requests_limit=100,
+        requests_remaining=97,
+        requests_reset="42",
+        tokens_limit=100000,
+    )
 
 
 def test_parses_string_fields():

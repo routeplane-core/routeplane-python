@@ -14,8 +14,17 @@ from ._version import __version__
 from .async_client import AsyncRouteplane
 from .client import Routeplane
 from .headers import headers
-from .meta import RouteplaneMeta
-from .resources import Decision, RunStep
+from .meta import RouteplaneMeta, RouteplaneRateLimits
+from .resources import (
+    CacheSavings,
+    DailyPricingEvidence,
+    DailyUsageReport,
+    Decision,
+    RunStep,
+    SaverMetrics,
+    TimeseriesData,
+    UsageData,
+)
 
 __all__ = [
     "Routeplane",
@@ -24,7 +33,14 @@ __all__ = [
     "AsyncRouteplaneStream",
     "headers",
     "RouteplaneMeta",
+    "RouteplaneRateLimits",
     "Decision",
+    "CacheSavings",
+    "DailyPricingEvidence",
+    "DailyUsageReport",
     "RunStep",
+    "SaverMetrics",
+    "TimeseriesData",
+    "UsageData",
     "__version__",
 ]

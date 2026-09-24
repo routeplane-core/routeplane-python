@@ -147,22 +147,150 @@ def test_finops_usage():
 
 @respx.mock
 def test_finops_usage_daily_range():
+    available = {
+        "data_state": "live",
+        "availability": "available",
+        "value": 0,
+        "unit": "micro_currency",
+        "currency": "USD",
+        "scale": 6,
+        "cost_status": "estimated",
+        "source": {
+            "class": "durable_rollup",
+            "systems": ["telemetry_rung_1"],
+            "schema_version": "routeplane.finops.cost.v1",
+        },
+        "coverage": {
+            "eligible_count": 1,
+            "observed_count": 1,
+            "priced_count": 1,
+            "unpriced_count": 0,
+            "invalid_pricing_count": 0,
+            "versioned_priced_count": 1,
+            "pricing_coverage_state": "known",
+            "pricing_book_versions": ["pb_1"],
+            "pricing_book_versions_truncated": False,
+            "numeric_overflowed": False,
+            "missing_reasons": [],
+        },
+        "component_coverage": {
+            "input_output_split_available": False,
+            "inr_view_available": False,
+        },
+    }
+    report = {
+        "tenant_id": "t_1",
+        "from": "2026-07-01",
+        "to": "2026-07-20",
+        "days": [],
+        "totals": {
+            "requests": 1,
+            "errors": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "cost_micro_usd": 0,
+            "input_cost_micro_usd": None,
+            "output_cost_micro_usd": None,
+            "cost_inr_paise": None,
+            "pricing": available,
+        },
+        "note": "durable estimated usage",
+    }
     route = respx.get(f"{BASE}/finops/usage/daily").mock(
-        return_value=httpx.Response(200, json=[{"day": "2026-07-01"}])
+        return_value=httpx.Response(200, json=report)
     )
     out = FinopsResource(**_kwargs()).usage_daily(from_date="2026-07-01", to_date="2026-07-20")
-    assert out == [{"day": "2026-07-01"}]
+    assert out == report
     params = _sent(route).url.params
     assert params["from"] == "2026-07-01"
     assert params["to"] == "2026-07-20"
 
 
 @respx.mock
+def test_finops_usage_daily_preserves_unavailable_cost_and_usage():
+    unavailable = {
+        "data_state": "unavailable",
+        "availability": "unavailable",
+        "value": None,
+        "unit": "micro_currency",
+        "currency": "USD",
+        "scale": 6,
+        "cost_status": "unavailable",
+        "source": {
+            "class": "durable_rollup",
+            "systems": ["telemetry_rung_1"],
+            "schema_version": "routeplane.finops.cost.v1",
+        },
+        "coverage": {
+            "eligible_count": 1,
+            "observed_count": 1,
+            "priced_count": 0,
+            "unpriced_count": 0,
+            "invalid_pricing_count": 1,
+            "versioned_priced_count": 0,
+            "pricing_coverage_state": "corrupt",
+            "pricing_book_versions": [],
+            "pricing_book_versions_truncated": False,
+            "numeric_overflowed": False,
+            "missing_reasons": ["pricing_coverage_corrupt"],
+        },
+        "component_coverage": {
+            "input_output_split_available": False,
+            "inr_view_available": False,
+        },
+    }
+    report = {
+        "tenant_id": "t_1",
+        "from": "2026-07-01",
+        "to": "2026-07-01",
+        "days": [],
+        "totals": {
+            "requests": 1,
+            "errors": 0,
+            "prompt_tokens": 4,
+            "completion_tokens": 2,
+            "total_tokens": 6,
+            "cost_micro_usd": None,
+            "input_cost_micro_usd": None,
+            "output_cost_micro_usd": None,
+            "cost_inr_paise": None,
+            "pricing": unavailable,
+        },
+        "note": "pricing unavailable",
+    }
+    respx.get(f"{BASE}/finops/usage/daily").mock(return_value=httpx.Response(200, json=report))
+
+    out = FinopsResource(**_kwargs()).usage_daily()
+    assert out["totals"]["cost_micro_usd"] is None
+    assert out["totals"]["pricing"]["coverage"]["pricing_coverage_state"] == "corrupt"
+    assert out["totals"]["total_tokens"] == 6
+
+
+@respx.mock
 def test_finops_timeseries():
-    respx.get(f"{BASE}/finops/timeseries").mock(
+    route = respx.get(f"{BASE}/finops/timeseries").mock(
         return_value=httpx.Response(200, json={"points": []})
     )
-    assert FinopsResource(**_kwargs()).timeseries() == {"points": []}
+    assert FinopsResource(**_kwargs()).timeseries(window_mins=60, buckets=12) == {"points": []}
+    assert dict(_sent(route).url.params) == {"window_mins": "60", "buckets": "12"}
+
+
+@respx.mock
+def test_finops_timeseries_legacy_range_is_explicitly_converted():
+    route = respx.get(f"{BASE}/finops/timeseries").mock(
+        return_value=httpx.Response(200, json={"buckets": []})
+    )
+    with pytest.warns(DeprecationWarning, match="window_mins"):
+        FinopsResource(**_kwargs()).timeseries(
+            from_date="2026-07-01T00:00:00Z", to_date="2026-07-01T02:00:00Z"
+        )
+    assert dict(_sent(route).url.params) == {"window_mins": "120"}
+
+
+def test_finops_timeseries_rejects_a_partial_legacy_range():
+    with pytest.raises(ValueError, match="require both"):
+        FinopsResource(**_kwargs()).timeseries(from_date="2026-07-01")
 
 
 @respx.mock
