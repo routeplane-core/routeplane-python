@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import math
-import warnings
-from datetime import datetime
 from typing import Literal, Optional, TypedDict
 
 from ._base import BaseResource, prune_none
@@ -98,6 +95,12 @@ class DailyPricingCoverage(TypedDict):
 
 class DailyPricingComponentCoverage(TypedDict):
     input_output_split_available: bool
+    cost_split_coverage_state: Literal["known", "legacy_unknown", "corrupt"]
+    input_attributed_count: int
+    output_attributed_count: int
+    invalid_input_count: int
+    invalid_output_count: int
+    missing_reasons: list[str]
     inr_view_available: bool
 
 
@@ -208,27 +211,6 @@ DailyUsageReport = TypedDict(
 )
 
 
-def _legacy_window_mins(from_date: str, to_date: str) -> int:
-    """Convert a legacy absolute range to the relative window the server supports."""
-
-    def parse(value: str) -> datetime:
-        try:
-            # Python 3.9's fromisoformat does not accept the common trailing Z.
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError as exc:
-            raise ValueError("legacy timeseries dates must be ISO-8601 values") from exc
-
-    start = parse(from_date)
-    end = parse(to_date)
-    try:
-        seconds = (end - start).total_seconds()
-    except TypeError as exc:
-        raise ValueError("legacy timeseries dates must use compatible timezones") from exc
-    if seconds < 0:
-        raise ValueError("legacy timeseries from_date must not be after to_date")
-    return max(1, math.ceil(seconds / 60))
-
-
 class FinopsResource(BaseResource):
     """Usage rollups, cost time-series, and cost-saver metrics."""
 
@@ -265,21 +247,15 @@ class FinopsResource(BaseResource):
         """Return the recent process-local cost/usage time series.
 
         ``window_mins`` and ``buckets`` are the gateway's native query contract.
-        The legacy ``from_date``/``to_date`` pair remains accepted for source
-        compatibility, but is converted to a relative duration and emits a
-        :class:`DeprecationWarning`; it cannot select absolute durable history.
+        The legacy ``from_date``/``to_date`` parameters remain in the signature
+        for source compatibility but are rejected: this endpoint cannot select
+        an absolute period. Use :meth:`usage_daily` for durable date ranges.
         """
         if from_date is not None or to_date is not None:
-            if window_mins is not None or buckets is not None:
-                raise ValueError("do not combine timeseries date-range and window options")
-            if from_date is None or to_date is None:
-                raise ValueError("legacy timeseries ranges require both from_date and to_date")
-            warnings.warn(
-                "timeseries(from_date=..., to_date=...) is deprecated; use window_mins=...",
-                DeprecationWarning,
-                stacklevel=2,
+            raise ValueError(
+                "absolute timeseries date ranges are unsupported; use usage_daily("
+                "from_date=..., to_date=...)"
             )
-            window_mins = _legacy_window_mins(from_date, to_date)
         params = prune_none({"window_mins": window_mins, "buckets": buckets})
         data: TimeseriesData = self._get("finops/timeseries", params=params).json()
         return data
