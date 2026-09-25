@@ -175,6 +175,12 @@ def test_finops_usage_daily_range():
         },
         "component_coverage": {
             "input_output_split_available": False,
+            "cost_split_coverage_state": "legacy_unknown",
+            "input_attributed_count": 0,
+            "output_attributed_count": 0,
+            "invalid_input_count": 0,
+            "invalid_output_count": 0,
+            "missing_reasons": ["legacy_cost_split_coverage_unknown"],
             "inr_view_available": False,
         },
     }
@@ -237,6 +243,12 @@ def test_finops_usage_daily_preserves_unavailable_cost_and_usage():
         },
         "component_coverage": {
             "input_output_split_available": False,
+            "cost_split_coverage_state": "corrupt",
+            "input_attributed_count": 0,
+            "output_attributed_count": 0,
+            "invalid_input_count": 1,
+            "invalid_output_count": 1,
+            "missing_reasons": ["cost_split_coverage_corrupt", "total_pricing_unavailable"],
             "inr_view_available": False,
         },
     }
@@ -276,20 +288,15 @@ def test_finops_timeseries():
     assert dict(_sent(route).url.params) == {"window_mins": "60", "buckets": "12"}
 
 
-@respx.mock
-def test_finops_timeseries_legacy_range_is_explicitly_converted():
-    route = respx.get(f"{BASE}/finops/timeseries").mock(
-        return_value=httpx.Response(200, json={"buckets": []})
-    )
-    with pytest.warns(DeprecationWarning, match="window_mins"):
+def test_finops_timeseries_rejects_legacy_range_instead_of_moving_it_to_now():
+    with pytest.raises(ValueError, match="absolute timeseries date ranges are unsupported"):
         FinopsResource(**_kwargs()).timeseries(
             from_date="2026-07-01T00:00:00Z", to_date="2026-07-01T02:00:00Z"
         )
-    assert dict(_sent(route).url.params) == {"window_mins": "120"}
 
 
 def test_finops_timeseries_rejects_a_partial_legacy_range():
-    with pytest.raises(ValueError, match="require both"):
+    with pytest.raises(ValueError, match="absolute timeseries date ranges are unsupported"):
         FinopsResource(**_kwargs()).timeseries(from_date="2026-07-01")
 
 
